@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-git add .'use client'
+'use client'
 
 import Header from '@/components/Header'
 import { Card, StatCard, ProgressBar } from '@/components/Cards'
