@@ -25,7 +25,7 @@ export default function Monitoring() {
 
   // Generate mock data for voltage/current trends
   const trendData = [
-    { time: '09:00', voltage: 375, current: 95, power: 35.6, temp: 28 },
+    { time: '09:00', voltage:   0, current: 200, power: 0, temp: 90 },
     { time: '09:15', voltage: 378, current: 98, power: 37.0, temp: 29 },
     { time: '09:30', voltage: 380, current: 102, power: 38.8, temp: 30 },
     { time: '09:45', voltage: 382, current: 110, power: 42.0, temp: 32 },
@@ -47,25 +47,25 @@ export default function Monitoring() {
               metrics={[
                 {
                   label: 'Total Voltage',
-                  value: formatVoltage(0),
+                  value: formatVoltage(28),
                   unit: 'AC Supply',
                   status: 'normal',
                 },
                 {
                   label: 'Total Current',
-                  value: formatCurrent(450),
+                  value: formatCurrent(65),
                   unit: 'All Slots',
                   status: 'normal',
                 },
                 {
                   label: 'Total Power',
-                  value: formatNumber(172, 1),
+                  value: formatNumber(1.8, 1),
                   unit: 'kW',
                   status: 'normal',
                 },
                 {
                   label: 'Avg Temperature',
-                  value: formatTemperature(200.5),
+                  value: formatTemperature(32.5),
                   unit: 'System',
                   status: 'normal',
                 },
