@@ -47,7 +47,7 @@ export default function Monitoring() {
               metrics={[
                 {
                   label: 'Total Voltage',
-                  value: formatVoltage(380),
+                  value: formatVoltage(0),
                   unit: 'AC Supply',
                   status: 'normal',
                 },
@@ -65,7 +65,7 @@ export default function Monitoring() {
                 },
                 {
                   label: 'Avg Temperature',
-                  value: formatTemperature(32.5),
+                  value: formatTemperature(90.5),
                   unit: 'System',
                   status: 'normal',
                 },
