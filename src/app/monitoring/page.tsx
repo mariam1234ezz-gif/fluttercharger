@@ -65,7 +65,7 @@ export default function Monitoring() {
                 },
                 {
                   label: 'Avg Temperature',
-                  value: formatTemperature(90.5),
+                  value: formatTemperature(200.5),
                   unit: 'System',
                   status: 'normal',
                 },
