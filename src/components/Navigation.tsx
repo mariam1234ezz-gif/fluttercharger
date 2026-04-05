@@ -13,32 +13,50 @@ const navItems = [
   { name: 'Slots', href: '/slots' },
 ]
 
+const handleLogout = () => {
+  localStorage.removeItem('token')
+  window.location.href = '/login'
+}
+
 export default function Navigation() {
   const pathname = usePathname()
 
   return (
-    <div className="w-64 min-h-screen bg-slate-950 text-white p-4">
-      <h2 className="text-lg font-bold mb-6">Owner Dashboard</h2>
+    <div className="w-64 min-h-screen bg-slate-950 text-white p-4 flex flex-col justify-between">
+      
+      {/* 🔼 Top Section */}
+      <div>
+        <h2 className="text-lg font-bold mb-6">Owner Dashboard</h2>
 
-      <div className="space-y-2">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href
+        <div className="space-y-2">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block rounded-lg px-4 py-3 transition ${
-                isActive
-                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              {item.name}
-            </Link>
-          )
-        })}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`block rounded-lg px-4 py-3 transition ${
+                  isActive
+                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                {item.name}
+              </Link>
+            )
+          })}
+        </div>
       </div>
+
+      {/* 🔽 Bottom Section (Logout) */}
+      <button
+        onClick={handleLogout}
+        className="w-full rounded-lg px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition"
+      >
+        Logout
+      </button>
+
     </div>
   )
 }

@@ -38,10 +38,10 @@ export default function Dashboard() {
   const alerts = mockAlerts.filter((a) => !a.resolved)
   const activeSessions = mockChargerSlots.filter((s) => s.status === 'charging').length
 
-  const energyMix = [
-    { name: 'Solar', value: stats.solarContribution, fill: '#f59e0b' },
-    { name: 'Grid', value: stats.gridContribution, fill: '#3b82f6' },
-  ]
+const energyMix = [
+  { name: "Solar", value: 72.5, fill: "#f59e0b" },
+  { name: "Grid", value: 109, fill: "#3b82f6" },
+];
 
   return (
     <div className="min-h-screen bg-dark-bg">

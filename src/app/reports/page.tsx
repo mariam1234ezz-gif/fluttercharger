@@ -78,14 +78,14 @@ export default function Reports() {
             />
             <StatCard
               label="Solar Contribution"
-              value={formatNumber(solarPercentage, 1)}
+          value={`${Number(solarPercentage).toFixed(1)}%`}
               icon={TrendingUp}
               color="warning"
               unit="% of energy"
             />
             <StatCard
               label="Avg Session Value"
-              value={formatCurrency(avgSessionValue)}
+         value={`$${Number(avgSessionValue).toFixed(2)}`}
               icon={DollarSign}
               color="success"
               unit="per session"
@@ -209,13 +209,13 @@ export default function Reports() {
                 <div className="flex justify-between items-center p-3 bg-dark-bg rounded-lg">
                   <span className="text-gray-400">Avg Energy/Day</span>
                   <span className="text-blue-400 font-semibold">
-                    {formatNumber(totalEnergy / mockReportData.length, 0)} kWh
+                 {(totalEnergy / mockReportData.length).toFixed(1)} kWh
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-dark-bg rounded-lg">
                   <span className="text-gray-400">Avg Revenue/Day</span>
                   <span className="text-green-400 font-semibold">
-                    {formatCurrency(totalRevenue / mockReportData.length)}
+                   ${(totalRevenue / mockReportData.length).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-dark-bg rounded-lg">
@@ -250,13 +250,13 @@ export default function Reports() {
                 <div className="flex justify-between items-center p-3 bg-dark-bg rounded-lg">
                   <span className="text-gray-400">Cost Savings (Solar)</span>
                   <span className="text-green-400 font-semibold">
-                    {formatCurrency((totalSolar / totalEnergy) * totalRevenue * 0.3)}
+                    ${((totalSolar / totalEnergy) * totalRevenue * 0.3).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-dark-bg rounded-lg">
                   <span className="text-gray-400">Carbon Offset</span>
                   <span className="text-green-400 font-semibold">
-                    {formatNumber((totalSolar / 1000) * 0.45, 2)} tons CO₂
+                  {((totalSolar / 1000) * 0.45).toFixed(2)} tons CO₂
                   </span>
                 </div>
               </div>
@@ -292,7 +292,7 @@ export default function Reports() {
                           <Badge
                             variant={solarPct > 50 ? 'success' : solarPct > 30 ? 'warning' : 'info'}
                           >
-                            {formatNumber(solarPct, 1)}%
+                          {solarPct.toFixed(1)}%
                           </Badge>
                         </td>
                       </tr>

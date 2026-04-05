@@ -37,7 +37,7 @@ export function DataWidget({
     <div className={`card-dark ${sizeClasses[size]} text-center`}>
       <p className="text-xs sm:text-sm text-gray-400 font-medium mb-2">{label}</p>
       <p className={`font-bold ${valueClasses[size]} ${statusColors[status]}`}>
-        {value}
+        {value ?? 0}
       </p>
       <p className="text-xs text-gray-500 mt-1">{unit}</p>
     </div>
@@ -81,13 +81,17 @@ export function GaugeChart({
   label: string
   color?: 'primary' | 'success' | 'warning' | 'danger'
 }) {
-  const percentage = (value / max) * 100
+  const safeValue = Number(value) || 0
+  const safeMax = Number(max) || 1
+  const percentage = (safeValue / safeMax) * 100
+
+  const safePercentage = Number(percentage) || 0
 
   const colorMap = {
-    primary: { bg: 'conic-gradient(#00d4ff, #00d4ff)', text: 'text-primary' },
-    success: { bg: 'conic-gradient(#10b981, #10b981)', text: 'text-green-400' },
-    warning: { bg: 'conic-gradient(#f59e0b, #f59e0b)', text: 'text-yellow-400' },
-    danger: { bg: 'conic-gradient(#ef4444, #ef4444)', text: 'text-red-400' },
+    primary: { text: 'text-primary' },
+    success: { text: 'text-green-400' },
+    warning: { text: 'text-yellow-400' },
+    danger: { text: 'text-red-400' },
   }
 
   return (
@@ -97,7 +101,7 @@ export function GaugeChart({
           viewBox="0 0 100 100"
           className="w-full h-full transform -rotate-90"
         >
-          {/* Background circle */}
+          {/* Background */}
           <circle
             cx="50"
             cy="50"
@@ -105,56 +109,35 @@ export function GaugeChart({
             fill="none"
             stroke="currentColor"
             strokeWidth="8"
-            className="text-dark-border"
+            className="text-gray-700"
           />
-          {/* Progress circle */}
+
+          {/* Progress */}
           <circle
             cx="50"
             cy="50"
             r="40"
             fill="none"
-            stroke="url(#gradient)"
+            stroke="currentColor"
             strokeWidth="8"
-            strokeDasharray={`${(percentage / 100) * 251.2} 251.2`}
-            className="transition-all duration-500"
+            strokeDasharray={`${(safePercentage / 100) * 251.2} 251.2`}
+            className={`${colorMap[color].text} transition-all duration-500`}
             strokeLinecap="round"
           />
-          <defs>
-            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              {color === 'primary' && (
-                <>
-                  <stop offset="0%" stopColor="#00d4ff" />
-                  <stop offset="100%" stopColor="#0099cc" />
-                </>
-              )}
-              {color === 'success' && (
-                <>
-                  <stop offset="0%" stopColor="#10b981" />
-                  <stop offset="100%" stopColor="#059669" />
-                </>
-              )}
-              {color === 'warning' && (
-                <>
-                  <stop offset="0%" stopColor="#f59e0b" />
-                  <stop offset="100%" stopColor="#d97706" />
-                </>
-              )}
-              {color === 'danger' && (
-                <>
-                  <stop offset="0%" stopColor="#ef4444" />
-                  <stop offset="100%" stopColor="#dc2626" />
-                </>
-              )}
-            </linearGradient>
-          </defs>
         </svg>
+
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <p className={`text-2xl font-bold ${colorMap[color].text}`}>{percentage.toFixed(0)}%</p>
-            <p className="text-xs text-gray-400">{value.toFixed(1)}</p>
+            <p className={`text-2xl font-bold ${colorMap[color].text}`}>
+              {safePercentage.toFixed(0)}%
+            </p>
+            <p className="text-xs text-gray-400">
+              {safeValue.toFixed(1)}
+            </p>
           </div>
         </div>
       </div>
+
       <p className="text-xs text-gray-400 text-center">{label}</p>
     </div>
   )
@@ -168,9 +151,14 @@ export function ValueTable({
   return (
     <div className="space-y-2">
       {rows.map((row, idx) => (
-        <div key={idx} className="flex justify-between items-center py-2 border-b border-dark-border/50">
+        <div
+          key={idx}
+          className="flex justify-between items-center py-2 border-b border-gray-700"
+        >
           <span className="text-sm text-gray-400">{row.label}</span>
-          <span className={`font-semibold ${row.color || 'text-primary'}`}>{row.value}</span>
+          <span className={`font-semibold ${row.color || 'text-primary'}`}>
+            {row.value ?? 0}
+          </span>
         </div>
       ))}
     </div>
