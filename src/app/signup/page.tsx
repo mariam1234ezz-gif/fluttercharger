@@ -1,29 +1,41 @@
 'use client'
 
 import { useState } from 'react'
-import { auth } from '@/lib/firebase'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { auth, rtdb } from '@/lib/firebase'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { ref, set } from 'firebase/database'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { Card, Button } from '@/components/Cards'
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      const userCred = await createUserWithEmailAndPassword(auth, email, password)
+      const user = userCred.user
+
+      // Save user data to Realtime Database
+      await set(ref(rtdb, 'users/' + user.uid), {
+        email: user.email,
+        name: fullName || 'New User',
+        role: 'owner',
+        createdAt: new Date().toISOString(),
+      })
+
       router.push('/dashboard')
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in')
+      setError(err.message || 'Failed to create account')
     } finally {
       setLoading(false)
     }
@@ -32,15 +44,28 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-dark-bg">
       <Header
-        title="Sign In"
-        description="Log in to your EV charging station dashboard"
+        title="Create Account"
+        description="Sign up to access your EV charging station dashboard"
       />
 
       <main className="p-6 flex items-center justify-center min-h-[calc(100vh-200px)]">
         <Card className="w-full max-w-md">
-          <h1 className="text-2xl font-bold text-white mb-6 text-center">Login</h1>
+          <h1 className="text-2xl font-bold text-white mb-6 text-center">Sign Up</h1>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                placeholder="John Doe"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full px-4 py-2 bg-dark-border text-white rounded-lg border border-gray-600 focus:border-primary outline-none transition"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Email
@@ -61,7 +86,7 @@ export default function LoginPage() {
               </label>
               <input
                 type="password"
-                placeholder="Your password"
+                placeholder="Secure password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -79,17 +104,17 @@ export default function LoginPage() {
               variant="primary"
               size="md"
               className="w-full mt-6"
-              onClick={handleLogin}
+              onClick={handleSignup}
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Creating account...' : 'Sign Up'}
             </Button>
           </form>
 
           <p className="text-center text-gray-400 text-sm mt-4">
-            Don't have an account?{' '}
-            <a href="/signup" className="text-primary hover:text-primary-light">
-              Sign up
+            Already have an account?{' '}
+            <a href="/login" className="text-primary hover:text-primary-light">
+              Log in
             </a>
           </p>
         </Card>

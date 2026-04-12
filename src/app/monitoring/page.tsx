@@ -1,6 +1,9 @@
 'use client'
 import Footer from "@/components/Footer";
-import { mockEnergyData, mockChargerSlots } from '@/lib/mockData'
+import { collection, query, limit, onSnapshot } from "firebase/firestore";
+import { useEffect, useState } from "react";
+
+import { db } from "@/lib/firebase";
 import Header from '@/components/Header'
 import { Card, Badge, Button, ProgressBar } from '@/components/Cards'
 import { DataWidget } from '@/components/Widgets'
@@ -22,11 +25,38 @@ import {
 } from 'recharts'
 
 export default function Monitoring() {
+const [data, setData] = useState<any>(null);
+const [chartHistory, setChartHistory] = useState<{ time: string; solar: number; grid: number }[]>([]);
+const totalSolar = data?.solar || 0;
+const totalGrid = data?.grid || 0;
 
-  const totalSolar = mockEnergyData.reduce((acc, d) => acc + d.solar, 0)
-  const totalGrid = mockEnergyData.reduce((acc, d) => acc + d.grid, 0)
 
-  const activeSlots = mockChargerSlots.filter((s) => s.status === 'charging')
+
+useEffect(() => {
+  const q = query(collection(db, "energy"), limit(1));
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    if (!snapshot.empty) {
+      const docData = snapshot.docs[0].data();
+      const entry = {
+        solar: docData.solar ?? 0,
+        grid: docData.grid ?? 0,
+        voltage: docData.voltage ?? 0,
+        current: docData.current ?? 0,
+      };
+      setData(entry);
+      setChartHistory((prev) => [
+        ...prev.slice(-19),
+        {
+          time: new Date().toLocaleTimeString(),
+          solar: entry.solar,
+          grid: entry.grid,
+        },
+      ]);
+    }
+  });
+  return () => unsubscribe();
+}, []);
+  const activeSlots = []
 
   const trendData = [
     { time: '09:00', voltage: 375, current: 95, power: 36.0 },
@@ -52,7 +82,7 @@ export default function Monitoring() {
         ]
 
   const DONUT_COLORS = ['#f59e0b', '#3b82f6']
-
+if (!data) return <p className="text-white p-6">Loading...</p>;
   return (
     
     <div className="min-h-screen bg-dark-bg">
@@ -136,12 +166,48 @@ export default function Monitoring() {
                     outerRadius={95}
                     paddingAngle={3}
                     dataKey="value"
+                    labelLine={false}
+                    label={({
+                      cx,
+                      cy,
+                      midAngle,
+                      innerRadius,
+                      outerRadius,
+                      name,
+                      value,
+                    }) => {
+                      const RADIAN = Math.PI / 180;
+                      const radius = outerRadius + 24;
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                      return (
+                        <text
+                          x={x}
+                          y={y}
+                          fill={name === "Solar" ? "#f59e0b" : "#3b82f6"}
+                          textAnchor={x > cx ? "start" : "end"}
+                          dominantBaseline="central"
+                          fontSize={11}
+                          fontWeight={500}
+                        >
+                          {`${name}: ${value}`}
+                        </text>
+                      );
+                    }}
                   >
                     {donutData.map((_, i) => (
                       <Cell key={i} fill={DONUT_COLORS[i]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1e293b",
+                      border: "1px solid #334155",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                    formatter={(value) => `${value} kWh`}
+                  />
                 </PieChart>
               </ResponsiveContainer>
 
@@ -160,9 +226,9 @@ export default function Monitoring() {
             <Card>
               <h2 className="text-lg font-semibold text-white mb-4">Energy Input Over Time</h2>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={mockEnergyData}>
+                <LineChart data={chartHistory}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="name" stroke="#64748b" />
+                  <XAxis dataKey="time" stroke="#64748b" />
                   <YAxis stroke="#64748b" />
                   <Tooltip />
                   <Legend />

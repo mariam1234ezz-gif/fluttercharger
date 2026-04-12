@@ -1,19 +1,82 @@
 'use client'
 
 import Header from '@/components/Header'
-import { Card, Badge, Button, ProgressBar } from '@/components/Cards'
+import { StatCard, Card, Badge, Button, ProgressBar } from '@/components/Cards'
 import { DataWidget } from '@/components/Widgets'
-import { Battery, AlertTriangle, Zap, Activity } from 'lucide-react'
-import { mockBatteries } from '@/lib/mockData'
-import { useState } from 'react'
+import { Battery, AlertTriangle, Zap, Activity, Users } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { collection, onSnapshot } from 'firebase/firestore'
+import { ref, onValue } from "firebase/database";
+import { db, rtdb } from '@/lib/firebase'
+
+interface BatterySlot {
+  id: string
+  name: string
+  soc: number
+  serialNumber: string
+  type: string
+  capacity: number
+  health: number
+  status: 'charged' | 'empty' | 'faulty' | 'in-use'
+  lastUsedSlot?: number
+}
 
 export default function BatteryManagement() {
-  const [selectedBattery, setSelectedBattery] = useState<any>(null)
+  const [selectedBattery, setSelectedBattery] = useState<BatterySlot | null>(null)
+  const [batteries, setBatteries] = useState<BatterySlot[]>([])
+  const [totalUsers, setTotalUsers] = useState<number>(0)
+  const [ownerCount, setOwnerCount] = useState<number>(0);
+  const [userCount, setUserCount] = useState<number>(0);
 
-  const chargedBatteries = mockBatteries.filter((b) => b.status === 'charged')
-  const emptyBatteries = mockBatteries.filter((b) => b.status === 'empty')
-  const faultyBatteries = mockBatteries.filter((b) => b.status === 'faulty')
-  const inUseBatteries = mockBatteries.filter((b) => b.status === 'in-use')
+  useEffect(() => {
+    const usersRef = ref(rtdb, "users");
+    const unsubscribe = onValue(usersRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const allUsers = Object.values(data) as any[];
+        setTotalUsers(allUsers.length);
+        setOwnerCount(
+          allUsers.filter((u) => u.role === "owner").length
+        );
+        setUserCount(
+          allUsers.filter((u) => u.role === "user").length
+        );
+      } else {
+        setTotalUsers(0);
+        setOwnerCount(0);
+        setUserCount(0);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'batteries'), (snapshot) => {
+      const batteryList = snapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name?.toString() ?? doc.id,
+            soc: typeof data.soc === 'number' ? data.soc : parseInt(data.soc?.toString() ?? '0', 10),
+            serialNumber: data.serialNumber?.toString() ?? `BT-${doc.id}`,
+            type: data.type?.toString() ?? 'LFP',
+            capacity: typeof data.capacity === 'number' ? data.capacity : 100,
+            health: typeof data.health === 'number' ? data.health : 95,
+            status: data.status ?? 'charged',
+            lastUsedSlot: data.lastUsedSlot,
+          } as BatterySlot;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+      setBatteries(batteryList);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const chargedBatteries = batteries.filter((b) => b.status === 'charged')
+  const emptyBatteries = batteries.filter((b) => b.status === 'empty')
+  const faultyBatteries = batteries.filter((b) => b.status === 'faulty')
+  const inUseBatteries = batteries.filter((b) => b.status === 'in-use')
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -25,7 +88,23 @@ export default function BatteryManagement() {
       <main className="p-6 overflow-y-auto">
         <div className="space-y-6 max-w-7xl">
           {/* Battery Inventory Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+            <StatCard
+              label="Total Users"
+              value={totalUsers}
+              icon={Users}
+            />
+            <StatCard
+              label="Owners"
+              value={ownerCount}
+              icon={Users}
+            />
+            <StatCard
+              label="Users"
+              value={userCount}
+              icon={Users}
+            />
+
             <Card>
               <div className="flex items-center justify-between">
                 <div>

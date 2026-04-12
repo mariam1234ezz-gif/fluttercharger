@@ -8,6 +8,7 @@ const navItems = [
   { name: 'Monitoring', href: '/monitoring' },
   { name: 'Energy', href: '/energy' },
   { name: 'Batteries', href: '/batteries' },
+  { name: 'Users', href: '/users' },
   { name: 'Alerts', href: '/alerts' },
   { name: 'Reports', href: '/reports' },
   { name: 'Slots', href: '/slots' },
