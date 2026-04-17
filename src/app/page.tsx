@@ -5,7 +5,6 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { ref, onValue } from "firebase/database";
 import { db, auth, rtdb } from "@/lib/firebase";
 import { useRouter } from 'next/navigation'
-import Papa from 'papaparse';
 import Header from '@/components/Header'
 import { StatCard, Card, Badge, Button, ProgressBar } from '@/components/Cards'
 import { DataWidget, GaugeChart, ValueTable } from '@/components/Widgets'

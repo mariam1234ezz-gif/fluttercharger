@@ -11,7 +11,7 @@ export const mockEnergyData = [
 ]
 
 // Alerts
-export const mockAlerts = []
+export const mockAlerts: any[] = []
 
 // Batteries
 export const mockBatteries = [
@@ -49,30 +49,58 @@ export const mockReportData = [
 export const mockChargerSlots = [
   {
     id: 1,
+    slotNumber: 1,
     status: 'charging',
-    battery: 'LFP 100kWh',
-    soc: 67,
+    batteryType: 'LFP 100kWh',
+    batterySOC: 67,
     power: 47.5,
-    voltage: 380,
+    voltage: 430,
     current: 125,
-    temp: 35,
+    temperature: 48,
+    chargingMode: 'fast',
+    isOnline: true,
+    doorStatus: 'closed',
   },
   {
     id: 2,
+    slotNumber: 2,
     status: 'charging',
-    battery: 'LFP 80kWh',
-    soc: 42,
+    batteryType: 'LFP 80kWh',
+    batterySOC: 42,
     power: 35.6,
     voltage: 375,
-    current: 95,
-    temp: 32,
+    current: 155,
+    temperature: 37,
+    chargingMode: 'normal',
+    isOnline: true,
+    doorStatus: 'closed',
   },
   {
     id: 3,
+    slotNumber: 3,
     status: 'available',
+    batteryType: 'LFP 60kWh',
+    batterySOC: 0,
+    power: 0,
+    voltage: 0,
+    current: 0,
+    temperature: 28,
+    chargingMode: 'normal',
+    isOnline: true,
+    doorStatus: 'open',
   },
   {
     id: 4,
+    slotNumber: 4,
     status: 'faulty',
+    batteryType: 'Lead-Acid 75kWh',
+    batterySOC: 18,
+    power: 0,
+    voltage: 360,
+    current: 0,
+    temperature: 32,
+    chargingMode: 'normal',
+    isOnline: false,
+    doorStatus: 'closed',
   },
 ]

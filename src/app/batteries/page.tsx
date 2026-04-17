@@ -3,10 +3,10 @@
 import Header from '@/components/Header'
 import { StatCard, Card, Badge, Button, ProgressBar } from '@/components/Cards'
 import { DataWidget } from '@/components/Widgets'
-import { Battery, AlertTriangle, Zap, Activity, Users } from 'lucide-react'
+import { Battery, AlertTriangle, Zap, Activity } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { collection, onSnapshot } from 'firebase/firestore'
-import { ref, onValue } from "firebase/database";
+import { ref, onValue } from 'firebase/database'
 import { db, rtdb } from '@/lib/firebase'
 
 interface BatterySlot {
@@ -19,36 +19,41 @@ interface BatterySlot {
   health: number
   status: 'charged' | 'empty' | 'faulty' | 'in-use'
   lastUsedSlot?: number
+  slotNumber?: number | null
+  temperature: number
+  voltage: number
+  current: number
+  doorStatus: 'open' | 'closed'
 }
+
+const getBatteryTypeLabel = (type: string) => {
+  const normalized = type.toLowerCase()
+  if (normalized.includes('lead')) return 'Lead-Acid'
+  if (normalized.includes('lithium')) return 'Lithium'
+  return 'Lithium'
+}
+
+const getBatteryStatusLabel = (status: BatterySlot['status']) => {
+  switch (status) {
+    case 'charged':
+      return 'Idle'
+    case 'empty':
+      return 'Charging'
+    case 'in-use':
+      return 'Charging'
+    case 'faulty':
+      return 'Fault'
+    default:
+      return 'Idle'
+  }
+}
+
+const getDoorStatusVariant = (doorStatus: BatterySlot['doorStatus']) =>
+  doorStatus === 'open' ? 'warning' : 'success'
 
 export default function BatteryManagement() {
   const [selectedBattery, setSelectedBattery] = useState<BatterySlot | null>(null)
   const [batteries, setBatteries] = useState<BatterySlot[]>([])
-  const [totalUsers, setTotalUsers] = useState<number>(0)
-  const [ownerCount, setOwnerCount] = useState<number>(0);
-  const [userCount, setUserCount] = useState<number>(0);
-
-  useEffect(() => {
-    const usersRef = ref(rtdb, "users");
-    const unsubscribe = onValue(usersRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const allUsers = Object.values(data) as any[];
-        setTotalUsers(allUsers.length);
-        setOwnerCount(
-          allUsers.filter((u) => u.role === "owner").length
-        );
-        setUserCount(
-          allUsers.filter((u) => u.role === "user").length
-        );
-      } else {
-        setTotalUsers(0);
-        setOwnerCount(0);
-        setUserCount(0);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'batteries'), (snapshot) => {
@@ -65,6 +70,11 @@ export default function BatteryManagement() {
             health: typeof data.health === 'number' ? data.health : 95,
             status: data.status ?? 'charged',
             lastUsedSlot: data.lastUsedSlot,
+            slotNumber: typeof data.slotNumber === 'number' ? data.slotNumber : data.lastUsedSlot ?? null,
+            temperature: typeof data.temperature === 'number' ? data.temperature : 32,
+            voltage: typeof data.voltage === 'number' ? data.voltage : 380,
+            current: typeof data.current === 'number' ? data.current : 125,
+            doorStatus: data.doorStatus === 'open' ? 'open' : 'closed',
           } as BatterySlot;
         })
         .sort((a, b) => a.name.localeCompare(b.name));
@@ -77,6 +87,13 @@ export default function BatteryManagement() {
   const emptyBatteries = batteries.filter((b) => b.status === 'empty')
   const faultyBatteries = batteries.filter((b) => b.status === 'faulty')
   const inUseBatteries = batteries.filter((b) => b.status === 'in-use')
+  const totalBatteries = batteries.length
+  const avgBatteryHealth = totalBatteries
+    ? Math.round(batteries.reduce((sum, b) => sum + b.health, 0) / totalBatteries)
+    : 0
+  const avgBatterySoc = totalBatteries
+    ? Math.round(batteries.reduce((sum, b) => sum + b.soc, 0) / totalBatteries)
+    : 0
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -90,19 +107,19 @@ export default function BatteryManagement() {
           {/* Battery Inventory Overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
             <StatCard
-              label="Total Users"
-              value={totalUsers}
-              icon={Users}
+              label="Total Batteries"
+              value={totalBatteries}
+              icon={Battery}
             />
             <StatCard
-              label="Owners"
-              value={ownerCount}
-              icon={Users}
+              label="Avg Health"
+              value={`${avgBatteryHealth}%`}
+              icon={Battery}
             />
             <StatCard
-              label="Users"
-              value={userCount}
-              icon={Users}
+              label="Avg SOC"
+              value={`${avgBatterySoc}%`}
+              icon={Battery}
             />
 
             <Card>
@@ -160,14 +177,27 @@ export default function BatteryManagement() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="font-semibold text-white">{battery.serialNumber}</p>
-                        <p className="text-sm text-gray-400">{battery.type}</p>
+                        <p className="text-sm text-gray-400">
+                          ID: {battery.id} · {getBatteryTypeLabel(battery.type)}
+                        </p>
                       </div>
-                      <Badge variant="success">✓ Charged</Badge>
+                      <Badge variant="success">{getBatteryStatusLabel(battery.status)}</Badge>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       <DataWidget label="Capacity" value={battery.capacity} unit="kWh" size="sm" />
                       <DataWidget label="SOC" value={battery.soc} unit="%" size="sm" />
                       <DataWidget label="Health" value={battery.health} unit="%" size="sm" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mt-3">
+                      <DataWidget label="Temp" value={battery.temperature} unit="°C" size="sm" />
+                      <DataWidget label="Voltage" value={battery.voltage} unit="V" size="sm" />
+                      <DataWidget label="Current" value={battery.current} unit="A" size="sm" />
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-400">
+                      <span>Slot {battery.slotNumber ?? 'N/A'}</span>
+                      <Badge variant={getDoorStatusVariant(battery.doorStatus)}>
+                        Door {battery.doorStatus}
+                      </Badge>
                     </div>
                     <Button variant="success" size="sm" className="w-full mt-3">
                       Deploy to Slot
@@ -194,9 +224,11 @@ export default function BatteryManagement() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="font-semibold text-white">{battery.serialNumber}</p>
-                        <p className="text-sm text-gray-400">{battery.type}</p>
+                        <p className="text-sm text-gray-400">
+                          ID: {battery.id} · {getBatteryTypeLabel(battery.type)}
+                        </p>
                       </div>
-                      <Badge variant="warning">Charging</Badge>
+                      <Badge variant="warning">{getBatteryStatusLabel(battery.status)}</Badge>
                     </div>
                     <div className="mb-3">
                       <ProgressBar
@@ -210,6 +242,17 @@ export default function BatteryManagement() {
                       <DataWidget label="Capacity" value={battery.capacity} unit="kWh" size="sm" />
                       <DataWidget label="SOC" value={battery.soc} unit="%" size="sm" />
                       <DataWidget label="Health" value={battery.health} unit="%" size="sm" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mt-3">
+                      <DataWidget label="Temp" value={battery.temperature} unit="°C" size="sm" />
+                      <DataWidget label="Voltage" value={battery.voltage} unit="V" size="sm" />
+                      <DataWidget label="Current" value={battery.current} unit="A" size="sm" />
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-400">
+                      <span>Slot {battery.slotNumber ?? 'N/A'}</span>
+                      <Badge variant={getDoorStatusVariant(battery.doorStatus)}>
+                        Door {battery.doorStatus}
+                      </Badge>
                     </div>
                     <p className="text-xs text-gray-400 mt-3">Est. 2h 15m remaining</p>
                   </div>
@@ -234,9 +277,11 @@ export default function BatteryManagement() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="font-semibold text-white">{battery.serialNumber}</p>
-                        <p className="text-sm text-gray-400">{battery.type}</p>
+                        <p className="text-sm text-gray-400">
+                          ID: {battery.id} · {getBatteryTypeLabel(battery.type)}
+                        </p>
                       </div>
-                      <Badge variant="danger">Faulty</Badge>
+                      <Badge variant="danger">{getBatteryStatusLabel(battery.status)}</Badge>
                     </div>
                     <div className="mb-3 p-3 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-400">
                       📋 LOW HEALTH: {battery.health}% - Needs maintenance
@@ -245,6 +290,17 @@ export default function BatteryManagement() {
                       <DataWidget label="Capacity" value={battery.capacity} unit="kWh" size="sm" />
                       <DataWidget label="SOC" value={battery.soc} unit="%" size="sm" />
                       <DataWidget label="Health" value={battery.health} unit="%" size="sm" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mt-3">
+                      <DataWidget label="Temp" value={battery.temperature} unit="°C" size="sm" />
+                      <DataWidget label="Voltage" value={battery.voltage} unit="V" size="sm" />
+                      <DataWidget label="Current" value={battery.current} unit="A" size="sm" />
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-400">
+                      <span>Slot {battery.slotNumber ?? 'N/A'}</span>
+                      <Badge variant={getDoorStatusVariant(battery.doorStatus)}>
+                        Door {battery.doorStatus}
+                      </Badge>
                     </div>
                     <Button variant="danger" size="sm" className="w-full">
                       Send to Maintenance
@@ -329,20 +385,29 @@ export default function BatteryManagement() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-gray-400 text-xs mb-1">Serial Number</p>
-                    <p className="font-monospace text-white font-semibold">{selectedBattery.serialNumber}</p>
+                    <p className="text-gray-400 text-xs mb-1">Battery ID</p>
+                    <p className="font-monospace text-white font-semibold">{selectedBattery.id}</p>
                   </div>
                   <div>
-                    <p className="text-gray-400 text-xs mb-1">Battery Type</p>
-                    <p className="text-white font-semibold">{selectedBattery.type}</p>
+                    <p className="text-gray-400 text-xs mb-1">Type</p>
+                    <p className="text-white font-semibold">{getBatteryTypeLabel(selectedBattery.type)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <DataWidget label="Capacity" value={selectedBattery.capacity} unit="kWh" />
                   <DataWidget label="State of Charge" value={selectedBattery.soc} unit="%" />
-                  <DataWidget label="Health Status" value={selectedBattery.health} unit="%" />
-                  <DataWidget label="Current Status" value={selectedBattery.status} unit="" />
+                  <DataWidget label="Temp" value={selectedBattery.temperature} unit="°C" />
+                  <DataWidget label="Voltage" value={selectedBattery.voltage} unit="V" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <DataWidget label="Current" value={selectedBattery.current} unit="A" />
+                  <DataWidget label="Status" value={getBatteryStatusLabel(selectedBattery.status)} unit="" />
+                  <DataWidget label="Slot" value={selectedBattery.slotNumber ?? 'N/A'} unit="" />
+                  <Badge variant={getDoorStatusVariant(selectedBattery.doorStatus)}>
+                    Door {selectedBattery.doorStatus}
+                  </Badge>
                 </div>
 
                 <ProgressBar

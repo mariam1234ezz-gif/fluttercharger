@@ -13,6 +13,8 @@ type User = {
   email: string
   role: string
   history?: any
+  sessions?: any[] | number
+  payments?: any[] | number
 }
 
 export default function UsersPage() {
@@ -31,6 +33,8 @@ export default function UsersPage() {
           email: data[id].email ?? 'No email',
           role: data[id].role ?? 'user',
           history: data[id].history ?? null,
+          sessions: data[id].sessions ?? [],
+          payments: data[id].payments ?? [],
         }))
         setUsers(parsed)
       } else {
@@ -133,11 +137,52 @@ export default function UsersPage() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-gray-400 text-xs mb-1">Session Count</p>
+                    <p className="text-white font-semibold">
+                      {Array.isArray(selectedUser.sessions)
+                        ? selectedUser.sessions.length
+                        : typeof selectedUser.sessions === 'number'
+                        ? selectedUser.sessions
+                        : 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs mb-1">Total Payments</p>
+                    <p className="text-white font-semibold">
+                      {Array.isArray(selectedUser.payments)
+                        ? `$${selectedUser.payments.reduce((sum, payment) => sum + (payment?.amount || 0), 0).toFixed(2)}`
+                        : typeof selectedUser.payments === 'number'
+                        ? `$${selectedUser.payments.toFixed(2)}`
+                        : '$0.00'}
+                    </p>
+                  </div>
+                </div>
+
                 {selectedUser.history && (
                   <div>
                     <p className="text-gray-400 text-xs mb-2">History</p>
                     <pre className="bg-dark-bg p-3 rounded text-sm text-gray-300 overflow-x-auto">
                       {JSON.stringify(selectedUser.history, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {selectedUser.sessions && (
+                  <div>
+                    <p className="text-gray-400 text-xs mb-2">Sessions</p>
+                    <pre className="bg-dark-bg p-3 rounded text-sm text-gray-300 overflow-x-auto">
+                      {JSON.stringify(selectedUser.sessions, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {selectedUser.payments && (
+                  <div>
+                    <p className="text-gray-400 text-xs mb-2">Payments</p>
+                    <pre className="bg-dark-bg p-3 rounded text-sm text-gray-300 overflow-x-auto">
+                      {JSON.stringify(selectedUser.payments, null, 2)}
                     </pre>
                   </div>
                 )}

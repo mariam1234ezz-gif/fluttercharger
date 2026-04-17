@@ -21,7 +21,7 @@ export function StatCard({
 }: {
   label: string
   value: string | number
-  icon: React.ComponentType<{ size: number; className?: string }>
+  icon: React.ComponentType<any>
   trend?: { value: number; positive: boolean }
   unit?: string
   color?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
@@ -67,7 +67,12 @@ export function StatCard({
   )
 }
 
-export function AlertCard({ title, icon: Icon, message, severity }: any) {
+export function AlertCard({ title, icon: Icon, message, severity }: {
+  title: string
+  icon: React.ComponentType<any>
+  message: string
+  severity: 'critical' | 'warning' | 'info'
+}) {
   const severityColors = {
     critical: 'bg-red-500/10 border-red-500/20 text-red-400',
     warning: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400',

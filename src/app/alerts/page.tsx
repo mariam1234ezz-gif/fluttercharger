@@ -3,22 +3,151 @@
 import Header from '@/components/Header'
 import { Card, Badge, Button, AlertCard } from '@/components/Cards'
 import { AlertTriangle, Zap, Thermometer, AlertCircle, Wifi, RotateCcw, Clock, CheckCircle } from 'lucide-react'
-import { mockAlerts, mockChargerSlots } from '@/lib/mockData'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { collection, onSnapshot } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 const alertTypesInfo = {
   overvoltage: { icon: Zap, name: 'Overvoltage', color: 'danger' },
   overcurrent: { icon: Zap, name: 'Overcurrent', color: 'danger' },
   overheating: { icon: Thermometer, name: 'Overheating', color: 'warning' },
+  'door-open': { icon: AlertTriangle, name: 'Door Open', color: 'warning' },
+  offline: { icon: Wifi, name: 'Slot Offline', color: 'danger' },
   'short-circuit': { icon: AlertTriangle, name: 'Short Circuit', color: 'danger' },
   'system-failure': { icon: AlertCircle, name: 'System Failure', color: 'danger' },
   'communication-loss': { icon: Wifi, name: 'Communication Loss', color: 'warning' },
 }
 
+interface BatteryAlert {
+  id: string
+  type: string
+  severity: 'critical' | 'warning' | 'info'
+  timestamp: string
+  message: string
+  slotId?: string
+  slotNumber?: number
+  resolved?: boolean
+}
+
+interface BatteryDoc {
+  id: string
+  status: string
+  slotNumber?: number
+  temperature?: number
+  voltage?: number
+  current?: number
+  doorStatus?: string
+  isOnline?: boolean
+}
+
+const generateBatteryAlerts = (batteries: BatteryDoc[]) => {
+  const now = new Date().toLocaleString()
+  return batteries.flatMap((battery) => {
+    const alerts: BatteryAlert[] = []
+    const slot = battery.slotNumber ?? null
+
+    if (battery.isOnline === false) {
+      alerts.push({
+        id: `offline-${battery.id}`,
+        type: 'offline',
+        severity: 'critical',
+        timestamp: now,
+        message: `Slot ${slot ?? battery.id} is offline and not reporting data.`,
+        slotId: battery.id,
+        slotNumber: slot ?? undefined,
+        resolved: false,
+      })
+    }
+
+    if (battery.doorStatus === 'open') {
+      alerts.push({
+        id: `door-${battery.id}`,
+        type: 'door-open',
+        severity: 'warning',
+        timestamp: now,
+        message: `Slot ${slot ?? battery.id} door is open while idle or charging.`,
+        slotId: battery.id,
+        slotNumber: slot ?? undefined,
+        resolved: false,
+      })
+    }
+
+    if ((battery.temperature ?? 0) >= 45) {
+      alerts.push({
+        id: `temp-${battery.id}`,
+        type: 'overheating',
+        severity: 'critical',
+        timestamp: now,
+        message: `Slot ${slot ?? battery.id} temperature is high at ${battery.temperature}°C.`,
+        slotId: battery.id,
+        slotNumber: slot ?? undefined,
+        resolved: false,
+      })
+    }
+
+    if ((battery.voltage ?? 0) > 415) {
+      alerts.push({
+        id: `voltage-${battery.id}`,
+        type: 'overvoltage',
+        severity: 'critical',
+        timestamp: now,
+        message: `Slot ${slot ?? battery.id} voltage is abnormal at ${battery.voltage}V.`,
+        slotId: battery.id,
+        slotNumber: slot ?? undefined,
+        resolved: false,
+      })
+    }
+
+    if ((battery.current ?? 0) > 140) {
+      alerts.push({
+        id: `current-${battery.id}`,
+        type: 'overcurrent',
+        severity: 'warning',
+        timestamp: now,
+        message: `Slot ${slot ?? battery.id} current spike detected at ${battery.current}A.`,
+        slotId: battery.id,
+        slotNumber: slot ?? undefined,
+        resolved: false,
+      })
+    }
+
+    return alerts
+  })
+}
+
 export default function Alerts() {
-  const [selectedAlert, setSelectedAlert] = useState<any>(null)
-  const activeAlerts = mockAlerts.filter((a) => !a.resolved)
-  const resolvedAlerts = mockAlerts.filter((a) => a.resolved)
+  const [selectedAlert, setSelectedAlert] = useState<BatteryAlert | null>(null)
+  const [batteries, setBatteries] = useState<BatteryDoc[]>([])
+  const [resolvedAlerts, setResolvedAlerts] = useState<BatteryAlert[]>([])
+
+  useEffect(() => {
+    const batteryCollection = collection(db, 'batteries')
+    const unsubscribe = onSnapshot(batteryCollection, (snapshot) => {
+      const batteryList: BatteryDoc[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      } as BatteryDoc))
+      setBatteries(batteryList)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    const alertsCollection = collection(db, 'alerts')
+    const unsubscribe = onSnapshot(alertsCollection, (snapshot) => {
+      const alerts = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      } as BatteryAlert))
+      setResolvedAlerts(alerts.filter((alert) => alert.resolved))
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  const generatedAlerts = useMemo(() => generateBatteryAlerts(batteries), [batteries])
+  const activeAlerts = generatedAlerts
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -167,13 +296,8 @@ export default function Alerts() {
                           </div>
                           <p className="text-sm text-gray-300 mt-1">{alert.message}</p>
                           <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                            {alert.slotId && (
-                              <span>
-                                📍 {
-                                  mockChargerSlots.find((s) => s.id === alert.slotId)
-                                    ?.slotNumber
-                                }
-                              </span>
+                            {alert.slotNumber != null && (
+                              <span>📍 Slot {alert.slotNumber}</span>
                             )}
                             <span>🕐 {alert.timestamp}</span>
                           </div>
@@ -260,11 +384,8 @@ export default function Alerts() {
                   <div className="bg-dark-bg p-3 rounded-lg col-span-2">
                     <p className="text-gray-400 text-xs mb-1">Location</p>
                     <p className="text-primary font-semibold">
-                      {selectedAlert.slotId
-                        ? `Charging Slot ${
-                            mockChargerSlots.find((s) => s.id === selectedAlert.slotId)
-                              ?.slotNumber
-                          }`
+                      {selectedAlert.slotNumber != null
+                        ? `Charging Slot ${selectedAlert.slotNumber}`
                         : 'System-wide'}
                     </p>
                   </div>
