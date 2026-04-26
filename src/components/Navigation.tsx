@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navItems = [
-  { name: 'Home', href: '/' },
+  { name: 'Home', href: '/home' },
   { name: 'Monitoring', href: '/monitoring' },
   { name: 'Energy', href: '/energy' },
   { name: 'Batteries', href: '/batteries' },
@@ -12,6 +12,7 @@ const navItems = [
   { name: 'Alerts', href: '/alerts' },
   { name: 'Reports', href: '/reports' },
   { name: 'Slots', href: '/slots' },
+  { name: 'Door Monitoring', href: '/door-monitoring' },
 ]
 
 const handleLogout = () => {

@@ -1,6 +1,10 @@
-import Footer from "@/components/Footer";
 import './globals.css'
-import Navigation from '@/components/Navigation'
+import { AuthProvider } from '@/components/AuthProvider'
+
+export const metadata = {
+  title: 'Smart EV Charging Dashboard',
+  description: 'Admin dashboard for smart hybrid EV battery charging stations',
+}
 
 export default function RootLayout({
   children,
@@ -10,20 +14,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-slate-900 text-white">
-        <div className="flex">
-          <Navigation />
-          <div className="flex-1 flex flex-col min-h-screen">
-  
-  <main className="flex-1 p-6">
-    {children}
-  </main>
-
-  <Footer />
-
-</div>
-          
-            
-        </div>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )
